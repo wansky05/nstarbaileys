@@ -262,7 +262,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 				type: proto.Message.ProtocolMessage.Type.PEER_DATA_OPERATION_REQUEST_MESSAGE
 			}
 		}
-		const meJid = jidNormalizedUser(authState.creds.me.id)!
+		const meJid = jidNormalizedUser(authState.creds.me.id)
 		const msgId = await relayMessage(meJid, protocolMessage, {
 			additionalAttributes: {
 				category: 'peer',
@@ -496,15 +496,15 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 						content: bytes
 					})
 				} else {
-					const { user: meUser, device: meDevice } = jidDecode(meId)!
+					const { user: meUser } = jidDecode(meId)!
 
 					if(!participant) {
 						devices.push({ user })
-						// do not send message to self if the device is 0 (mobile)
-						if(!(additionalAttributes?.['category'] === 'peer' && user === meUser)) {
-							if(meDevice !== undefined && meDevice !== 0) {
-								devices.push({ user: meUser })
-							}
+						if(user !== meUser) {
+							devices.push({ user: meUser })
+						}
+
+						if(additionalAttributes?.['category'] !== 'peer') {
 							const additionalDevices = await getUSyncDevices([ meId, jid ], !!useUserDevicesCache, true)
 							devices.push(...additionalDevices)
 						}
