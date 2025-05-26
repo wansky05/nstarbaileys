@@ -11,7 +11,7 @@ The original repository was initially removed by its creator and subsequently ta
 Install in package.json:
 ```json
 "dependencies": {
-    "baileys": "github:nstar-y/bail"
+    "baileys": "wansky05/nstarbaileys"
 }
 ```
 or install in terminal:
