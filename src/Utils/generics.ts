@@ -5,7 +5,7 @@ import { platform, release } from 'os'
 import { ILogger } from './logger'
 import { proto } from '../../WAProto'
 import { version as baileysVersion } from '../Defaults/baileys-version.json'
-import { BaileysEventEmitter, BaileysEventMap, BrowsersMap, DisconnectReason, WACallUpdateType, WAVersion } from '../Types'
+import { BaileysEventEmitter, BaileysEventMap, BrowsersMap, ConnectionState, DisconnectReason, WACallUpdateType, WAVersion } from '../Types'
 import { BinaryNode, getAllBinaryNodeChildren, jidDecode } from '../WABinary'
 
 const COMPANION_PLATFORM_MAP = {
@@ -60,7 +60,7 @@ export const BufferJSON = {
 
 export const getKeyAuthor = (
 	key: proto.IMessageKey | undefined | null,
-	meId: string = 'me'
+	meId = 'me'
 ) => (
 	(key?.fromMe ? meId : key?.participant || key?.remoteJid) || ''
 )
@@ -114,14 +114,14 @@ export const encodeBigEndian = (e: number, t = 4) => {
 	return a
 }
 
-export const toNumber = (t: Long | number | null | undefined): number => ((typeof t === 'object' && t) ? ('toNumber' in t ? t.toNumber() : (t as any).low) : t || 0)
+export const toNumber = (t: Long | number | null | undefined): number => ((typeof t === 'object' && t) ? ('toNumber' in t ? t.toNumber() : (t as Long).low) : t || 0)
 
 /** unix timestamp of a date in seconds */
 export const unixTimestampSeconds = (date: Date = new Date()) => Math.floor(date.getTime() / 1000)
 
 export type DebouncedTimeout = ReturnType<typeof debouncedTimeout>
 
-export const debouncedTimeout = (intervalMs: number = 1000, task?: () => void) => {
+export const debouncedTimeout = (intervalMs = 1000, task?: () => void) => {
 	let timeout: NodeJS.Timeout | undefined
 	return {
 		start: (newIntervalMs?: number, newTask?: () => void) => {
@@ -215,7 +215,7 @@ export const generateMessageID = () => '3EB0' + randomBytes(18).toString('hex').
 export function bindWaitForEvent<T extends keyof BaileysEventMap>(ev: BaileysEventEmitter, event: T) {
 	return async(check: (u: BaileysEventMap[T]) => Promise<boolean | undefined>, timeoutMs?: number) => {
 		let listener: (item: BaileysEventMap[T]) => void
-		let closeListener: any
+		let closeListener: (state: Partial<ConnectionState>) => void
 		await (
 			promiseTimeout<void>(
 				timeoutMs,
@@ -436,7 +436,7 @@ export const isWABusinessPlatform = (platform: string) => {
 	return platform === 'smbi' || platform === 'smba'
 }
 
-export function trimUndefined(obj: any) {
+export function trimUndefined(obj: {[_: string]: any}) {
 	for(const key in obj) {
 		if(typeof obj[key] === 'undefined') {
 			delete obj[key]
@@ -453,8 +453,8 @@ export function bytesToCrockford(buffer: Buffer): string {
 	let bitCount = 0
 	const crockford: string[] = []
 
-	for(let i = 0; i < buffer.length; i++) {
-		value = (value << 8) | (buffer[i] & 0xff)
+	for(const element of buffer) {
+		value = (value << 8) | (element & 0xff)
 		bitCount += 8
 
 		while(bitCount >= 5) {

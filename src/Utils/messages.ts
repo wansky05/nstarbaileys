@@ -363,6 +363,10 @@ export const generateWAMessageContent = async(
 		}
 
 		m.extendedTextMessage = extContent
+
+		m.messageContextInfo = {
+			messageSecret: randomBytes(32)
+		}
 	} else if('contacts' in message) {
 		const contactLen = message.contacts.contacts.length
 		if(!contactLen) {
@@ -942,6 +946,9 @@ export const normalizeMessageContent = (content: WAMessageContent | null | undef
 			 || message?.pollCreationMessageV5
 			 || message?.statusAddYours
 			 || message?.groupStatusMessage
+			 || message?.limitSharingMessage
+			 || message?.botTaskMessage
+			 || message?.questionMessage
 		 )
 	 }
 }
@@ -1130,17 +1137,13 @@ export const downloadMediaMessage = async<Type extends 'buffer' | 'stream'>(
 ) => {
 	const result = await downloadMsg()
 		.catch(async(error) => {
-			if(ctx) {
-				if(axios.isAxiosError(error)) {
-					// check if the message requires a reupload
-					if(REUPLOAD_REQUIRED_STATUS.includes(error.response?.status!)) {
-						ctx.logger.info({ key: message.key }, 'sending reupload media request...')
-						// request reupload
-						message = await ctx.reuploadRequest(message)
-						const result = await downloadMsg()
-						return result
-					}
-				}
+			if(ctx && axios.isAxiosError(error) && // check if the message requires a reupload
+					REUPLOAD_REQUIRED_STATUS.includes(error.response?.status!)) {
+				ctx.logger.info({ key: message.key }, 'sending reupload media request...')
+				// request reupload
+				message = await ctx.reuploadRequest(message)
+				const result = await downloadMsg()
+				return result
 			}
 
 			throw error
